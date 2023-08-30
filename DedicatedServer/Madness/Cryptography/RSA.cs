@@ -16,8 +16,6 @@ namespace DedicatedServer.Madness.Cryptography
 {
     public static class RSA
     {
-        public static AsymmetricCipherKeyPair KeyPair;
-
         public static RsaKeyParameters PublicRsaKey;
         public static RsaKeyParameters PrivateRsaKey;
 
@@ -28,8 +26,7 @@ namespace DedicatedServer.Madness.Cryptography
         {
             var privateKeyParam = ReadAsymmetricKeyParameter(Constants.RSAPrivate);
             var publicKeyParam = ReadAsymmetricKeyParameter(Constants.RSAPublic);
-
-            KeyPair = new AsymmetricCipherKeyPair(publicKeyParam, privateKeyParam);
+            
 
             PublicRsaKey = publicKeyParam as RsaKeyParameters;
             PrivateRsaKey = privateKeyParam as RsaKeyParameters;

@@ -1,10 +1,14 @@
+using MessagePack;
+
 namespace DedicatedServer.Madness.Packets
 {
+    [MessagePackObject]
     public class CPacketHello : Packet
     {
-        CPacketHello()
+        [Key("Nothing")] public byte[] AESKey;
+        
+        public CPacketHello() : base(PacketType.CPacketHello)
         {
-            type = PacketType.C_Hello;
         }
     }
 }

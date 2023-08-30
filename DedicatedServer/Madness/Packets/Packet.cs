@@ -1,15 +1,23 @@
+using MessagePack;
+
 namespace DedicatedServer.Madness.Packets
 {
     public enum PacketType
     {
-        C_Null = 1,
-        C_Hello = 2,
-        S_Null = -1,
-        S_Hello = -2
+        Null = 0,
+        CPacketHello = 1,
+        SPacketHello = -1
     }
     
+    
+    [MessagePackObject]
     public class Packet
     {
-        public PacketType type;
+        [Key("PacketType")] public PacketType type;
+
+        protected Packet(PacketType _type)
+        {
+            type = _type;
+        }
     }
 }
