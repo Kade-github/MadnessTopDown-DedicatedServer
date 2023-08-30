@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using ENet;
 
 namespace DedicatedServer
 {
     internal class Program
     {
+        public static RandomNumberGenerator number;
         public static Logging log;
         
         [DllImport("Kernel32")]
@@ -29,6 +31,8 @@ namespace DedicatedServer
         
         public static void Main(string[] args)
         {
+            number = RandomNumberGenerator.Create();
+            
             _handler += new EventHandler(Handler);
             SetConsoleCtrlHandler(_handler, true);
             log = new Logging();
