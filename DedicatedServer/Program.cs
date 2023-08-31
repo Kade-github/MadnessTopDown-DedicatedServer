@@ -7,6 +7,8 @@ using System.Security.Cryptography;
 using System.Text;
 using DedicatedServer.Madness;
 using DedicatedServer.Madness.DB;
+using DedicatedServer.Madness.Helpers;
+using DedicatedServer.Madness.Mail;
 using DedicatedServer.Madness.MessagePack;
 using DedicatedServer.Madness.Packets;
 using ENet;
@@ -56,14 +58,28 @@ namespace DedicatedServer
         {
             number = RandomNumberGenerator.Create();
 
+            log = new Logging();
+
+            try
+            {
+                log.Info("Testing sending an email");
+                
+                SMTP.SendMessage("Test Email", "Test", "kadepcgames@gmail.com", "test@madnessriotrage.com", "Test");
+                
+                log.Info("Sent!");
+            }
+            catch (Exception e)
+            {
+                log.Error("Failed!" + e);
+            }
+            
             dbConnection = new SQLConnection("127.0.0.1", 1337);
             
             log.Info("Connected to the database.");
             
             _handler += new EventHandler(Handler);
             SetConsoleCtrlHandler(_handler, true);
-            log = new Logging();
-            
+
             log.Info("MadnessTopDown Dedicated Server starting...");
 
             Players = new List<Player>();
@@ -145,6 +161,16 @@ namespace DedicatedServer
             
         }
 
+        public static void SendPacket(Player pl, Madness.Packets.Packet pa)
+        {
+            byte[] enc = PacketHelper.JanniePacket(pa, pl.current_aes);
+
+            ENet.Packet packet = default(ENet.Packet);
+            packet.Create(enc);
+            pl.peer.Send(0, ref packet);
+        }
+
+        
         public static void NewConnection(Peer p, Packet helloPacket)
         {
             byte[] hello = new byte[helloPacket.Length];
@@ -162,6 +188,12 @@ namespace DedicatedServer
                 Players.Add(yooo);
                 
                 log.Info("Peer " + p.IP + " has connected with a good packet.");
+                
+                // Send packet back to say we got it
+
+                SPacketHello sh = new SPacketHello();
+
+                SendPacket(yooo, sh);
             }
             catch (Exception e)
             {
