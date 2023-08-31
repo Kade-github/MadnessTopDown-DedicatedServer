@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using DedicatedServer.Madness.DB;
 using DedicatedServer.Madness.Helpers;
 using DedicatedServer.Madness.Mail;
@@ -22,35 +24,35 @@ public class CPacketSignUp : Packet
     }
 
 
-    public override void Handle(Player p)
+    public override async Task Handle(Player p)
     {
         if (!Email.Contains("@") || !Email.Contains(".") || Email.Contains(" "))
         {
-            p.peer.DisconnectNow((uint)Status.BadRequest);
+            Program.QueueDisconnect(p.peer, (uint)Status.BadRequest);
             return;
         }
 								
         if (Username.Any(ch => !char.IsLetterOrDigit(ch)))
         {
-            p.peer.DisconnectNow((uint)Status.BadRequest);
+            Program.QueueDisconnect(p.peer, (uint)Status.BadRequest);
             return;
         }
 
         if (Username.Length >= 16)
         {
-            p.peer.DisconnectNow((uint)Status.BadRequest);
+            Program.QueueDisconnect(p.peer, (uint)Status.BadRequest);
             return;
         }
 								
         if (Username.Length < 4)
         {
-            p.peer.DisconnectNow((uint)Status.BadRequest);
+            Program.QueueDisconnect(p.peer, (uint)Status.BadRequest);
             return;
         }
 
         if (!SMTP.IsEmailGood(Email))
         {
-            p.peer.DisconnectNow((uint)Status.BadRequest);
+            Program.QueueDisconnect(p.peer, (uint)Status.BadRequest);
             return;
         }
         
@@ -59,7 +61,7 @@ public class CPacketSignUp : Packet
         {
             SPacketSignUp status = new SPacketSignUp();
             status.statusCode = Status.UserAlreadyExists;
-            Program.SendPacket(p, status);
+            Program.QueuePacket(p, status);
             return;
         }
         
@@ -69,19 +71,19 @@ public class CPacketSignUp : Packet
         query.Parameters.AddWithValue("@Email", Email);
         query.Connection = connection;
 
-        query.Prepare();
+        await query.PrepareAsync();
         
-        var reader = query.ExecuteReader();
+        var reader = await query.ExecuteReaderAsync();
 
         if (reader.HasRows)
         {
             SPacketSignUp status = new SPacketSignUp();
             status.statusCode = Status.UserAlreadyExists;
-            Program.SendPacket(p, status);
-            connection.Close();
+            Program.QueuePacket(p, status);
+            await connection.CloseAsync();
             return;
         }
-        connection.Close();
+        await connection.CloseAsync();
         
         
         
@@ -107,16 +109,22 @@ public class CPacketSignUp : Packet
 
         try
         {
-            SMTP.SendMessage("<h1>Hello " + Username + "</h1>\n<p>Here is your verification key: " + a.EmailConfirmation + "</p>\n\n<p>You have <b>30 minutes</b> to verify the account, otherwise it will be discarded.</p>\n\n<h2>Thanks for playing our game!</h2>", 
-                "Email Verification - Madness: Riot Rage", Email, "verification@madnessriotrage.com", "Verification", Username);
-
+            Thread t = new Thread(() =>
+            {
+                SMTP.SendMessage(
+                    "<h1>Hello " + Username + "</h1>\n<p>Here is your verification key: " + a.EmailConfirmation +
+                    "</p>\n\n<p>You have <b>30 minutes</b> to verify the account, otherwise it will be discarded.</p>\n\n<h2>Thanks for playing our game!</h2>\n\n<p><a href='https://madnessriotrage.com/'>MadnessRiotRage</a> email sent from in-game.</p>",
+                    "Email Verification - Madness: Riot Rage", Email, "verification@madnessriotrage.com",
+                    "Verification", Username);
+            });
+            t.Start();
             SPacketSignUp status = new SPacketSignUp();
             status.statusCode = Status.Okay;
-            Program.SendPacket(p, status);
+            Program.QueuePacket(p, status);
         }
         catch
         {
-            p.peer.DisconnectNow((uint)Status.BadRequest);
+            Program.QueueDisconnect(p.peer, (uint)Status.BadRequest);
         }
 
     }

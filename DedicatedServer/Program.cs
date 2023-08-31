@@ -47,6 +47,26 @@ namespace DedicatedServer
         
         public static List<Player> Players = new();
 
+        public static Dictionary<Player, Madness.Packets.Packet> packetQueue = new();
+
+        public static Dictionary<Peer, uint> queueDisconnect = new();
+
+        public static void QueueDisconnect(Peer id, uint reason)
+        {
+            lock (queueDisconnect)
+            {
+                queueDisconnect[id] = reason;
+            }
+        }
+        
+        public static void QueuePacket(Player id, Madness.Packets.Packet pa)
+        {
+            lock (packetQueue)
+            {
+                packetQueue[id] = pa;
+            }
+        }
+        
 
         public static void DeletePlayer(Peer p)
         {
@@ -136,6 +156,24 @@ namespace DedicatedServer
                         tempAccounts.RemoveAll(m => toRemove.FirstOrDefault(mm => mm.Username == m.Username) != null); // linq :)
                         check.Restart();
                     }
+
+                    lock (packetQueue)
+                    {
+                        foreach (var p in packetQueue)
+                        {
+                            SendPacket(p.Key,p.Value);
+                        }
+                        packetQueue.Clear();
+                    }
+                    
+                    lock (queueDisconnect)
+                    {
+                        foreach (var p in queueDisconnect)
+                        {
+                            p.Key.DisconnectNow(p.Value);
+                        }
+                        queueDisconnect.Clear();
+                    }
                     
                     while (!polled) {
                         if (server.CheckEvents(out netEvent) <= 0) {
@@ -168,33 +206,52 @@ namespace DedicatedServer
                             case EventType.Receive:
                                 // Check if a player is already there
 
-                                Player found = FindPlayer(netEvent.Peer);
-
+                                Peer peer = netEvent.Peer;
+                                Player found = FindPlayer(peer);
+                                byte[] data = new byte[netEvent.Packet.Length];
+                                netEvent.Packet.CopyTo(data);
+                                netEvent.Packet.Dispose();
+            
                                 if (found == null)
                                 {
-                                    try
+                                    var peer1 = peer;
+                                    var data1 = data;
+                                    Thread t = new Thread(() =>
                                     {
-                                        NewConnection(netEvent.Peer, netEvent.Packet);
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        log.Error("Error while handling NewConnection packet on " + netEvent.Peer.IP + "(#" + netEvent.Peer.ID + "). " + e);
-                                        netEvent.Peer.DisconnectNow((uint)Status.BadRequest);
-                                    } 
+                                        try
+                                        {
+                                            NewConnection(peer1, data1);
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            log.Error("Error while handling NewConnection packet on " +
+                                                      peer1.IP + "(#" + peer1.ID + "). " + e);
+                                            QueueDisconnect(peer1, (uint)Status.BadRequest);
+                                        }
+                                    });
+                                    t.Start();
                                 }
                                 else
                                 {
                                     if (found.HandleRateLimit())
                                     {
-                                        try
+                                        var peer1 = peer;
+                                        var data1 = data;
+                                        var found1 = found;
+                                        Thread t = new Thread(() =>
                                         {
-                                            HandlePacket(found, netEvent.Packet);
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            log.Error("Error while handling packet on " + found.peer.IP + "(#" + found.peer.ID + "). " + e);
-                                            netEvent.Peer.DisconnectNow((uint)Status.Forbidden);
-                                        }
+                                            try
+                                            {
+                                                HandlePacket(found1, data1);
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                log.Error("Error while handling packet on " + peer1.IP + "(#" +
+                                                          peer1.ID + "). " + e);
+                                                QueueDisconnect(peer1, (uint)Status.Forbidden);
+                                            }
+                                        });
+                                        t.Start();
                                     }
                                     else
                                     {
@@ -214,12 +271,8 @@ namespace DedicatedServer
             ENet.Library.Deinitialize();
         }
 
-        public static void HandlePacket(Player p, Packet packet)
+        public static void HandlePacket(Player p, byte[] enc)
         {
-            byte[] enc = new byte[packet.Length];
-            packet.CopyTo(enc);
-            
-            packet.Dispose();
 
             byte[] dec = AES.DecryptAESPacket(enc, p.current_aes);
 
@@ -246,13 +299,9 @@ namespace DedicatedServer
         }
 
         
-        public static void NewConnection(Peer p, Packet helloPacket)
+        public static void NewConnection(Peer p, byte[] hello)
         {
-            byte[] hello = new byte[helloPacket.Length];
-            
-            helloPacket.CopyTo(hello);
-            helloPacket.Dispose();
-            
+
             try
             {
                 CPacketHello h = Decreal.DeserializePacket<CPacketHello>(hello);
@@ -278,7 +327,7 @@ namespace DedicatedServer
             catch (Exception e)
             {
                 log.Error("Peer " + p.IP + " has submitted a bad GreetSever packet. oops. " + e);
-                p.DisconnectNow(0);
+                QueueDisconnect(p, (uint)Status.BadRequest);
             }
             
         }

@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using DedicatedServer.Madness.DB;
 using DedicatedServer.Madness.Secrets;
 using MessagePack;
@@ -15,14 +16,14 @@ public class CPacketVerifyEmail : Packet
     {
     }
     
-    public override void Handle(Player p)
+    public override async Task Handle(Player p)
     {
         Account a = Program.tempAccounts.FirstOrDefault(a => a.Email == Email && a.EmailConfirmation == VerifyCode);
         if (a == null)
         {
             SPacketVerifyEmail status = new SPacketVerifyEmail();
             status.StatusCode = Status.BadRequest;
-            Program.SendPacket(p, status);
+            Program.QueuePacket(p, status);
             return;
         }
 
@@ -30,7 +31,7 @@ public class CPacketVerifyEmail : Packet
         {
             SPacketVerifyEmail status = new SPacketVerifyEmail();
             status.StatusCode = Status.BadRequest;
-            Program.SendPacket(p, status);
+            Program.QueuePacket(p, status);
             return;
         }
 
@@ -45,14 +46,14 @@ public class CPacketVerifyEmail : Packet
         insert.Parameters.AddWithValue("@Salt", a.PasswordSalt);
         insert.Parameters.AddWithValue("@CreationDate", a.CreationDate);
         
-        insert.Prepare();
+        await insert.PrepareAsync();
 
-        insert.ExecuteNonQuery();
+        await insert.ExecuteNonQueryAsync();
         
-        connection.Close();
+        await connection.CloseAsync();
 
         SPacketVerifyEmail s = new SPacketVerifyEmail();
         s.StatusCode = Status.Okay;
-        Program.SendPacket(p, s);
+        Program.QueuePacket(p, s);
     }
 }

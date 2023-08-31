@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using MessagePack;
 
 namespace DedicatedServer.Madness.Packets
@@ -40,7 +41,7 @@ namespace DedicatedServer.Madness.Packets
             type = _type;
         }
 
-        public virtual void Handle(Player p)
+        public virtual async Task Handle(Player p)
         {
             Console.WriteLine(type + " doesn't have a handle!");
         }
