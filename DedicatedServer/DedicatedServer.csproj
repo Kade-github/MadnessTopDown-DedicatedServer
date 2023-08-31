@@ -113,8 +113,10 @@
         <Compile Include="Madness\MessagePack\Cereal.cs" />
         <Compile Include="Madness\MessagePack\Decreal.cs" />
         <Compile Include="Madness\Packets\CPacketHello.cs" />
+        <Compile Include="Madness\Packets\CPacketSignUp.cs" />
         <Compile Include="Madness\Packets\Packet.cs" />
         <Compile Include="Madness\Packets\SPacketHello.cs" />
+        <Compile Include="Madness\Packets\SPacketSignUp.cs" />
         <Compile Include="Madness\Player.cs" />
         <Compile Include="Madness\Secrets\Constants.cs" />
         <Compile Include="Program.cs" />

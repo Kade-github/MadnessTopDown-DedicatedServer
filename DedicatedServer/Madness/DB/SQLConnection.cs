@@ -5,14 +5,15 @@ namespace DedicatedServer.Madness.DB
 {
     public class SQLConnection
     {
-        public MySqlConnection connection;
-
-        public SQLConnection(string addr, int port)
+        public static MySqlConnection OpenConnection(string addr, int port)
         {
-            connection = new MySqlConnection(
+            MySqlConnection c  = new MySqlConnection(
                 $"Server={addr}; Port={port};database=madness; UID={Constants.DBUser}; password={Constants.DBPassword}");
             
-            connection.Open();
+            c.Open();
+            return c;
         }
+        
+        
     }
 }

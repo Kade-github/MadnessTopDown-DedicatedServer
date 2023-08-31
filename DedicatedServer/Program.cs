@@ -42,7 +42,6 @@ namespace DedicatedServer
 
         public static List<Player> Players;
 
-        public static SQLConnection dbConnection;
 
         public static void DeletePlayer(Peer p)
         {
@@ -60,24 +59,7 @@ namespace DedicatedServer
 
             log = new Logging();
 
-            try
-            {
-                log.Info("Testing sending an email");
-                
-                SMTP.SendMessage("Test Email", "Test", "kadepcgames@gmail.com", "test@madnessriotrage.com", "Test");
-                
-                log.Info("Sent!");
-            }
-            catch (Exception e)
-            {
-                log.Error("Failed!" + e);
-            }
-            
-            dbConnection = new SQLConnection("127.0.0.1", 1337);
-            
-            log.Info("Connected to the database.");
-            
-            _handler += new EventHandler(Handler);
+            _handler += Handler;
             SetConsoleCtrlHandler(_handler, true);
 
             log.Info("MadnessTopDown Dedicated Server starting...");
@@ -142,8 +124,17 @@ namespace DedicatedServer
                                 if (found == null)
                                     NewConnection(netEvent.Peer, netEvent.Packet);
                                 else
-                                    HandlePacket(netEvent.Peer, netEvent.Packet);
-                                
+                                {
+                                    if (found.HandleRateLimit())
+                                        HandlePacket(netEvent.Peer, netEvent.Packet);
+                                    else
+                                    {
+                                        if (found.peer.State == PeerState.Disconnecting ||
+                                            found.peer.State == PeerState.Disconnected)
+                                            DeletePlayer(found.peer);
+                                    }
+                                }
+
                                 netEvent.Packet.Dispose();
                                 break;
                         }
@@ -186,6 +177,8 @@ namespace DedicatedServer
                 Player yooo = new Player(p);
                 yooo.current_aes = aesKey;
                 Players.Add(yooo);
+                
+                
                 
                 log.Info("Peer " + p.IP + " has connected with a good packet.");
                 
