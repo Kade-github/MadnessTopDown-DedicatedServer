@@ -115,8 +115,10 @@
         <Compile Include="Madness\MessagePack\Decreal.cs" />
         <Compile Include="Madness\Packets\CPacketHeartbeat.cs" />
         <Compile Include="Madness\Packets\CPacketHello.cs" />
+        <Compile Include="Madness\Packets\CPacketResetPassword.cs" />
         <Compile Include="Madness\Packets\CPacketSignUp.cs" />
         <Compile Include="Madness\Packets\CPacketVerifyEmail.cs" />
+        <Compile Include="Madness\Packets\SPacketResetPassword.cs" />
         <Compile Include="Madness\Packets\SPacketStatus.cs" />
         <Compile Include="Madness\Packets\Packet.cs" />
         <Compile Include="Madness\Packets\SPacketHello.cs" />

@@ -81,9 +81,13 @@ public class CPacketSignUp : Packet
             status.statusCode = Status.UserAlreadyExists;
             Program.QueuePacket(p, status);
             await connection.CloseAsync();
+
+            await connection.DisposeAsync();
             return;
         }
         await connection.CloseAsync();
+
+        await connection.DisposeAsync();
         
         
         
@@ -102,7 +106,8 @@ public class CPacketSignUp : Packet
         a.CreationDate = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         a.Banned = false;
         a.EmailConfirmed = false;
-        a.PasswordSalt = Convert.ToBase64String(salt);
+        a.PasswordSalt = salt;
+        a.LastIP = p.peer.IP;
         a.EmailConfirmation = RString.RandomString(5);
         
         Program.tempAccounts.Add(a);

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using DedicatedServer.Madness.DB;
@@ -38,19 +39,20 @@ public class CPacketVerifyEmail : Packet
         a.EmailConfirmed = true;
         
         MySqlConnection connection = SQLConnection.OpenConnection(Constants.DBHost, Constants.DBPort);
-        var insert = new MySqlCommand("INSERT INTO users (username, email, password_hash, salt, creationdate, email_confirmed) VALUES (@Username, @Email, @PasswordHash, @Salt, @CreationDate, 1)");
+        var insert = new MySqlCommand("INSERT INTO users (username, email, password_hash, salt, creationdate, email_confirmed, last_ip) VALUES (@Username, @Email, @PasswordHash, @Salt, @CreationDate, 1, @LastIp)");
         insert.Connection = connection;
         insert.Parameters.AddWithValue("@Username", a.Username);
         insert.Parameters.AddWithValue("@Email", a.Email);
         insert.Parameters.AddWithValue("@PasswordHash", a.PasswordHash);
-        insert.Parameters.AddWithValue("@Salt", a.PasswordSalt);
+        insert.Parameters.AddWithValue("@Salt", Convert.ToBase64String(a.PasswordSalt));
         insert.Parameters.AddWithValue("@CreationDate", a.CreationDate);
-        
+        insert.Parameters.AddWithValue("@LastIp", a.LastIP);
         await insert.PrepareAsync();
 
         await insert.ExecuteNonQueryAsync();
         
         await connection.CloseAsync();
+        await connection.DisposeAsync();
 
         SPacketVerifyEmail s = new SPacketVerifyEmail();
         s.StatusCode = Status.Okay;

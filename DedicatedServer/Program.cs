@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using DedicatedServer.Madness;
 using DedicatedServer.Madness.Cryptography;
 using DedicatedServer.Madness.DB;
@@ -44,6 +45,7 @@ namespace DedicatedServer
         }
 
         public static List<Account> tempAccounts = new();
+        public static List<Account> cachedAccounts = new();
         
         public static List<Player> Players = new();
 
@@ -51,6 +53,36 @@ namespace DedicatedServer
 
         public static Dictionary<Peer, uint> queueDisconnect = new();
 
+        public static async Task SetUpdated(string username)
+        {
+            lock (cachedAccounts)
+            {
+                Account a =cachedAccounts.FirstOrDefault(u => u.Username == username);
+
+                if (a == null)
+                    return;
+
+                a.Update(); // no await cuz lock()
+            }
+        }
+        
+        public static async Task<Account> GetAccount(string username)
+        {
+            Account a = null;
+            lock (cachedAccounts)
+            {
+                a = cachedAccounts.FirstOrDefault(u => u.Username == username);
+                if (a != null)
+                    return a;
+            }
+
+            a = await Account.GetAccount(username); // MYSQL Call
+            lock (cachedAccounts)
+                cachedAccounts.Add(a);
+
+            return a;
+        }
+        
         public static void QueueDisconnect(Peer id, uint reason)
         {
             lock (queueDisconnect)
@@ -118,6 +150,8 @@ namespace DedicatedServer
                 return;
             }
             Stopwatch check = new Stopwatch();
+
+            bool running = true;
             
             ENet.Library.Initialize();
             using (Host server = new Host()) {
@@ -128,7 +162,7 @@ namespace DedicatedServer
 
                 Event netEvent;
                 log.Info("Started!");
-                while (true) {
+                while (running) {
                     bool polled = false;
                     
                     if (!check.IsRunning)
