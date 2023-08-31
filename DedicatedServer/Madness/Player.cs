@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using DedicatedServer.Madness.Packets;
 using ENet;
 
 namespace DedicatedServer.Madness
@@ -12,7 +13,9 @@ namespace DedicatedServer.Madness
         public Account account;
         public Peer peer;
 
-        private Stopwatch watch;
+        public string playerLog = "";
+
+        private Stopwatch watch = new Stopwatch();
 
         private bool isWatched = false;
         
@@ -32,7 +35,7 @@ namespace DedicatedServer.Madness
 
             if (isWatched && packetsLastFew > 350 && peer.LastReceiveTime < 200)
             {
-                peer.DisconnectNow(0);
+                peer.DisconnectNow((uint)Status.TooManyRequests);
                 return false;
             }
             

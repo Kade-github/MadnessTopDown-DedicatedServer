@@ -8,15 +8,18 @@ namespace DedicatedServer.Madness
         public string Username = "";
         public string Email = "";
         public string PasswordReset = "";
+        public string PasswordSalt = "";
         public string PasswordHash = "";
         public string LastIP = "";
+        
+        public string EmailConfirmation = "";
         
         public bool Banned = false;
         public bool EmailConfirmed = false;
 
-        public DateTime CreationDate = DateTime.Now;
+        public long CreationDate = 0;
 
-        protected Account()
+        public Account()
         {
             
         }

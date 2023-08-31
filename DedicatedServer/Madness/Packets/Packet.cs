@@ -1,3 +1,4 @@
+using System;
 using MessagePack;
 
 namespace DedicatedServer.Madness.Packets
@@ -11,6 +12,7 @@ namespace DedicatedServer.Madness.Packets
         Forbidden = 403,
         NotFound = 404,
         TooManyRequests = 429,
+        UserAlreadyExists = 600,
         FuckYou = 1337
     }
     
@@ -19,8 +21,12 @@ namespace DedicatedServer.Madness.Packets
         Null = 0,
         CPacketHello = 1,
         CPacketSignUp = 2,
+        CPacketVerifyEmail = 3,
+        CPacketHeartBeat = 1000,
         SPacketHello = -1,
-        SPacketSignUp = -2
+        SPacketSignUp = -2,
+        SPacketVerifyEmail = -3,
+        SPacketStatus = -1000,
     }
     
     
@@ -32,6 +38,11 @@ namespace DedicatedServer.Madness.Packets
         protected Packet(PacketType _type)
         {
             type = _type;
+        }
+
+        public virtual void Handle(Player p)
+        {
+            Console.WriteLine(type + " doesn't have a handle!");
         }
     }
 }
