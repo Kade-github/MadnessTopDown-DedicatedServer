@@ -18,6 +18,11 @@ namespace DedicatedServer
             stream.Write(info, 0, info.Length);
         }
 
+        public static string FormatString(string s)
+        {
+            return "[" + DateTime.Now.ToLongDateString() + " " + DateTime.Now.ToLongTimeString() + "] " + s;
+        }
+        
         /// <summary>
         /// Get the date and time formatted without the stupid stuff.
         /// </summary>

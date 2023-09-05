@@ -118,6 +118,73 @@ namespace DedicatedServer
 
             return pl;
         }
+
+        /// <summary>
+        /// Clean up tempAccounts/cachedAccounts, along with sending queued packets and disconnecting clients.
+        /// </summary>
+        /// <param name="check">Check stopwatch for temp accounts</param>
+        public static void CheckTimersAndQueues(Stopwatch check)
+        {
+            if (!check.IsRunning)
+                check.Start();
+
+            if (check.Elapsed.Minutes >= 1) // check if temp accounts are being used
+            {
+                long currentTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+                List<Account> toRemove = new();
+
+                foreach (Account a in tempAccounts)
+                {
+                    if (a.EmailConfirmed) // remove early so we dont care, and have to loop through less.
+                    {
+                        toRemove.Add(a);
+                        continue;
+                    }
+                    if (currentTimestamp - a.CreationDate > 1800) // 30 minutes
+                    {
+                        toRemove.Add(a);
+                    }
+                }
+
+                tempAccounts.RemoveAll(m => toRemove.FirstOrDefault(mm => mm.Username == m.Username) != null); // linq :)
+                check.Restart();
+            }
+
+            lock (tempAccounts)
+            {
+                List<Account> toRemove = new();
+                foreach (Account a in cachedAccounts)
+                {
+                    if (!a.lastUsed.IsRunning)
+                        a.lastUsed.Start();
+
+                    if (a.lastUsed.Elapsed.Minutes > 60) // remove from cache
+                        toRemove.Add(a);
+
+                }
+                        
+                cachedAccounts.RemoveAll(m => toRemove.FirstOrDefault(mm => mm.Username == m.Username) != null); // linq :)
+            }
+
+            lock (packetQueue)
+            {
+                foreach (var p in packetQueue)
+                {
+                    SendPacket(p.Key,p.Value);
+                }
+                packetQueue.Clear();
+            }
+                    
+            lock (queueDisconnect)
+            {
+                foreach (var p in queueDisconnect)
+                {
+                    p.Key.DisconnectNow(p.Value);
+                }
+                queueDisconnect.Clear();
+            }
+        }
         
         public static void Main(string[] args)
         {
@@ -165,49 +232,7 @@ namespace DedicatedServer
                 while (running) {
                     bool polled = false;
                     
-                    if (!check.IsRunning)
-                        check.Start();
-
-                    if (check.Elapsed.Minutes >= 1) // check if temp accounts are being used
-                    {
-                        long currentTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-                        List<Account> toRemove = new();
-
-                        foreach (Account a in tempAccounts)
-                        {
-                            if (a.EmailConfirmed) // remove early so we dont care, and have to loop through less.
-                            {
-                                toRemove.Add(a);
-                                continue;
-                            }
-                            if (currentTimestamp - a.CreationDate > 1800) // 30 minutes
-                            {
-                                toRemove.Add(a);
-                            }
-                        }
-
-                        tempAccounts.RemoveAll(m => toRemove.FirstOrDefault(mm => mm.Username == m.Username) != null); // linq :)
-                        check.Restart();
-                    }
-
-                    lock (packetQueue)
-                    {
-                        foreach (var p in packetQueue)
-                        {
-                            SendPacket(p.Key,p.Value);
-                        }
-                        packetQueue.Clear();
-                    }
-                    
-                    lock (queueDisconnect)
-                    {
-                        foreach (var p in queueDisconnect)
-                        {
-                            p.Key.DisconnectNow(p.Value);
-                        }
-                        queueDisconnect.Clear();
-                    }
+                    CheckTimersAndQueues(check);
                     
                     while (!polled) {
                         if (server.CheckEvents(out netEvent) <= 0) {
@@ -269,6 +294,8 @@ namespace DedicatedServer
                                 {
                                     if (found.HandleRateLimit())
                                     {
+                                        if (found.account != null)
+                                            found.account.lastUsed.Restart();
                                         var peer1 = peer;
                                         var data1 = data;
                                         var found1 = found;
