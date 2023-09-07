@@ -10,7 +10,7 @@ namespace DedicatedServer.Madness
     {
         public byte[] current_aes;
         
-        public Account account = null;
+        public Account? account = null;
         public Peer peer;
 
         public string playerLog = "";

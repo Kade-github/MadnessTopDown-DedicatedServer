@@ -14,7 +14,7 @@ public class CPacketResetPassword : Packet
 
     public override async Task Handle(Player p)
     {
-        Account a = await Program.GetAccount(Username);
+        Account? a = await Program.GetAccount(Username);
 
         if (a == null)
         {

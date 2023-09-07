@@ -21,10 +21,11 @@ public class CPacketLogin : Packet
         
         Stopwatch watch = new Stopwatch();
         watch.Start();
-        Account a = await Program.GetAccount(Username); // mysql call, but if the account is in the hourly checked cache it'll return that.
+        Account? a = await Program.GetAccount(Username); // mysql call, but if the account is in the hourly checked cache it'll return that.
         SPacketLogin status;
         if (a == null)
         {
+            Program.log.Info(p.peer.IP + " failed to log in!");
             status = new SPacketLogin();
             status.StatusCode = Status.BadRequest;
             Program.QueuePacket(p, status);

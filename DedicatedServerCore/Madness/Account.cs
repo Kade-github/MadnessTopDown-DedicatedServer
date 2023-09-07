@@ -111,7 +111,7 @@ namespace DedicatedServer.Madness
         /// <summary>
         /// Mysql call to get an account from the database.
         /// </summary>
-        public static async Task<Account> GetAccount(string username)
+        public static async Task<Account?> GetAccount(string username)
         {
             MySqlConnection connection = await SQLConnection.OpenConnection(Constants.DBHost, Constants.DBPort);
 
@@ -121,7 +121,7 @@ namespace DedicatedServer.Madness
             await query.PrepareAsync();
         
             var reader = await query.ExecuteReaderAsync();
-            Account ret = null;
+            Account? ret = null;
             if (reader.HasRows)
             {
                 while (await reader.ReadAsync())

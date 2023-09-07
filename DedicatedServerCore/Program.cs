@@ -27,7 +27,7 @@ namespace DedicatedServer
         public static Logging log;
         
         public static List<Account> tempAccounts = new();
-        public static List<Account> cachedAccounts = new();
+        public static List<Account?> cachedAccounts = new();
         
         public static List<Player> Players = new();
 
@@ -41,36 +41,30 @@ namespace DedicatedServer
 
         public static async Task SetUpdated(string username)
         {
-            lock (cachedAccounts)
-            {
-                Account a =cachedAccounts.FirstOrDefault(u => u.Username == username);
+            Account a =cachedAccounts.FirstOrDefault(u => u.Username == username);
 
-                if (a == null)
-                    return;
+            if (a == null)
+                return;
 
-                a.Update(); // no await cuz lock()
-            }
+            await a.Update(); // no await cuz lock()
         }
         
-        public static async Task<Account> GetAccount(string username)
+        public static async Task<Account?> GetAccount(string username)
         {
-            Account a = null;
-            lock (cachedAccounts)
+            Account? a;
+            a = cachedAccounts.FirstOrDefault(u => String.Equals(u.Username, username, StringComparison.CurrentCultureIgnoreCase));
+            if (a != null)
             {
-                a = cachedAccounts.FirstOrDefault(u => String.Equals(u.Username, username, StringComparison.CurrentCultureIgnoreCase));
-                if (a != null)
-                {
-                    log.Debug("Returning cached " + a.Username);
-                    return a;
-                }
+                log.Debug("Returning cached " + a.Username);
+                return a;
             }
+            log.Debug(username + " isn't cached, doing sql call for it.");
 
             a = await Account.GetAccount(username); // MYSQL Call
-            lock (cachedAccounts)
-            {
-                cachedAccounts.Add(a);
-                log.Debug("Cached " + a.Username);
-            }
+            if (a == null)
+                return null; // its null
+            cachedAccounts.Add(a);
+            log.Debug("Cached " + a.Username);
 
             return a;
         }
@@ -112,7 +106,7 @@ namespace DedicatedServer
         }
 
         /// <summary>
-        /// Clean up tempAccounts/cachedAccounts, along with sending queued packets and disconnecting clients.
+        /// Clean up tempAccounts, along with sending queued packets and disconnecting clients.
         /// </summary>
         /// <param name="check">Check stopwatch for temp accounts</param>
         public static void CheckTimersAndQueues(Stopwatch check)
