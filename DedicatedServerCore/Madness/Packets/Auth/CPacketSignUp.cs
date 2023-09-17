@@ -124,6 +124,8 @@ public class CPacketSignUp : Packet
             SPacketSignUp status = new SPacketSignUp();
             status.statusCode = Status.Okay;
             Program.QueuePacket(p, status);
+            
+            p.AddLog("Registered " + Username);
         }
         catch
         {

@@ -58,7 +58,7 @@ public class CPacketLogin : Packet
         Program.QueuePacket(p, status);
 
         Program.log.Info(p.account.Username + " has logged in!");
-        p.playerLog += Logging.FormatString(p.peer.IP + " has logged in.");
+        p.AddLog("Logged into " + p.account.Username);
         Program.log.Debug(watch.Elapsed.Milliseconds + "ms - login 4");
     }
 }

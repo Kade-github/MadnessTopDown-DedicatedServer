@@ -42,7 +42,7 @@ public class CPacketVerifyEmail : Packet
         s.StatusCode = Status.Okay;
         Program.QueuePacket(p, s);
         Program.log.Info(a.Username + " has verified their email!");
-        
+        p.AddLog("Verified " + a.Username);
         await a.Export();
     }
 }

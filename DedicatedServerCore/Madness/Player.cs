@@ -55,7 +55,7 @@ namespace DedicatedServer.Madness
 
         public void AddLog(string log)
         {
-            playerLog += log;
+            playerLog += Logging.FormatString(log);
             if (playerLog.Split(Environment.NewLine).Length > 100)
                 playerLog = playerLog.Substring(0, playerLog.Trim().IndexOf(Environment.NewLine, StringComparison.Ordinal));
         }

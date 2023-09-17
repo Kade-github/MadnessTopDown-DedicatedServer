@@ -27,6 +27,9 @@ namespace DedicatedServer.Madness.MessagePack
             if (length > stream.Length - stream.Position)
                 throw new InvalidOperationException("Cannot read longer than memory stream length");
     
+            if (length < 0)
+                throw new InvalidOperationException("Length cannot be less than 0");
+            
             var packetData = reader.ReadBytes(length);
 
             var type = Cereal.GetTypeFromPacketType(packetType);

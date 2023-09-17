@@ -12,7 +12,6 @@ namespace DedicatedServer.Madness
     {
         public string Username = "";
         public string Email = "";
-        public string PasswordReset = "";
         public byte[] PasswordSalt;
         public string PasswordHash = "";
         public string LastIP = "";
@@ -20,7 +19,8 @@ namespace DedicatedServer.Madness
         public Stopwatch lastUsed = new();
         
         public string EmailConfirmation = "";
-
+        public string PasswordReset = "";
+        
         public bool Admin = false;
         public bool Banned = false;
         public bool EmailConfirmed = false;

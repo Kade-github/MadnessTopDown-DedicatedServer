@@ -150,6 +150,7 @@ namespace DedicatedServer
             {
                 foreach (var p in queueDisconnect)
                 {
+                    DeletePlayer(p.Key);
                     p.Key.DisconnectNow(p.Value);
                 }
                 queueDisconnect.Clear();
