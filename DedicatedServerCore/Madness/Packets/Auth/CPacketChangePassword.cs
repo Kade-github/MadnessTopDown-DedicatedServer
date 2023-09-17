@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using DedicatedServer.Madness.Helpers;
 using DedicatedServer.Madness.Packets;
 using MessagePack;
@@ -98,9 +99,9 @@ public class CPacketChangePassword : Packet
         p.account.PasswordSalt = salt;
         p.account.PasswordHash = base64;
             
-        password = new SPacketResetPassword();
-        password.StatusCode = Status.Okay;
-        Program.QueuePacket(p, password);
+        SPacketChangePassword pass = new SPacketChangePassword();
+        pass.status = Status.Okay;
+        Program.QueuePacket(p, pass);
 
         await p.account.Export();
     }

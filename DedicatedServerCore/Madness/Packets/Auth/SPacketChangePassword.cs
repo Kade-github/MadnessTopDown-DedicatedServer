@@ -8,7 +8,7 @@ public class SPacketChangePassword : Packet
 {
     [Key("status")] public Status status;
 
-    protected SPacketChangePassword() : base(PacketType.SPacketChangePassword)
+    public SPacketChangePassword() : base(PacketType.SPacketChangePassword)
     {
     }
 }

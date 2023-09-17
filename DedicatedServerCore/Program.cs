@@ -31,7 +31,7 @@ namespace DedicatedServer
         
         public static List<Player> Players = new();
 
-        public static Dictionary<Player, Madness.Packets.Packet> packetQueue = new();
+        public static Dictionary<Player, List<Madness.Packets.Packet>> packetQueue = new();
 
         public static Dictionary<Peer, uint> queueDisconnect = new();
 
@@ -47,6 +47,26 @@ namespace DedicatedServer
                 return;
 
             await a.Update(); // no await cuz lock()
+        }
+        
+        public static async Task<Account?> GetAccount(string username, string email)
+        {
+            Account? a;
+            a = cachedAccounts.FirstOrDefault(u => String.Equals(u.Username, username, StringComparison.CurrentCultureIgnoreCase));
+            if (a != null)
+            {
+                log.Debug("Returning cached " + a.Username);
+                return a;
+            }
+            log.Debug(username + " isn't cached, doing sql call for it.");
+
+            a = await Account.GetAccount(username, email); // MYSQL Call
+            if (a == null)
+                return null; // its null
+            cachedAccounts.Add(a);
+            log.Debug("Cached " + a.Username);
+
+            return a;
         }
         
         public static async Task<Account?> GetAccount(string username)
@@ -79,9 +99,13 @@ namespace DedicatedServer
         
         public static void QueuePacket(Player id, Madness.Packets.Packet pa)
         {
+            // monitor enter
             lock (packetQueue)
             {
-                packetQueue[id] = pa;
+                if (!packetQueue.ContainsKey(id))
+                    packetQueue.Add(id, new List<Madness.Packets.Packet>());
+                    
+                packetQueue[id].Add(pa);
             }
         }
         
@@ -94,9 +118,9 @@ namespace DedicatedServer
             }
         }
         
-        public static Player FindPlayer(Peer p)
+        public static Player? FindPlayer(Peer p)
         {
-            Player pl = null;
+            Player? pl = null;
             lock (Players)
             {
                 pl = Players.FirstOrDefault(pl => pl.peer.IP == p.IP && pl.peer.ID == p.ID);
@@ -137,23 +161,41 @@ namespace DedicatedServer
                 check.Restart();
             }
 
-            lock (packetQueue)
+            if (Monitor.TryEnter(packetQueue))
             {
-                foreach (var p in packetQueue)
+                try
                 {
-                    SendPacket(p.Key,p.Value);
+                    foreach (var p in packetQueue)
+                    {
+                        foreach (var pa in p.Value)
+                            SendPacket(p.Key, pa);
+                        p.Value.Clear();
+                    }
+
+                    
                 }
-                packetQueue.Clear();
+                finally
+                {
+                    Monitor.Exit(packetQueue);
+                }
             }
                     
-            lock (queueDisconnect)
+            if (Monitor.TryEnter(queueDisconnect))
             {
-                foreach (var p in queueDisconnect)
+                try
                 {
-                    DeletePlayer(p.Key);
-                    p.Key.DisconnectNow(p.Value);
+                    foreach (var p in queueDisconnect)
+                    {
+                        DeletePlayer(p.Key);
+                        p.Key.DisconnectNow(p.Value);
+                    }
+
+                    queueDisconnect.Clear();
                 }
-                queueDisconnect.Clear();
+                finally
+                {
+                    Monitor.Exit(queueDisconnect);
+                }
             }
         }
         
@@ -224,7 +266,7 @@ namespace DedicatedServer
                     while (running)
                     {
                         bool polled = false;
-
+                        
                         CheckTimersAndQueues(check);
 
                         while (!polled)
@@ -236,7 +278,8 @@ namespace DedicatedServer
 
                                 polled = true;
                             }
-
+                            
+                            
                             switch (netEvent.Type)
                             {
                                 case EventType.None:
@@ -264,7 +307,7 @@ namespace DedicatedServer
                                     // Check if a player is already there
 
                                     Peer peer = netEvent.Peer;
-                                    Player found = FindPlayer(peer);
+                                    Player? found = FindPlayer(peer);
                                     byte[] data = new byte[netEvent.Packet.Length];
                                     netEvent.Packet.CopyTo(data);
                                     netEvent.Packet.Dispose();
@@ -282,7 +325,7 @@ namespace DedicatedServer
                                             catch (Exception e)
                                             {
                                                 log.Error("Error while handling NewConnection packet on " +
-                                                          peer1.IP + "(#" + peer1.ID + "). " + e);
+                                                          peer1.IP + "(#" + peer1.ID + "). Disconnecting.");
                                                 QueueDisconnect(peer1, (uint)Status.BadRequest);
                                             }
                                         });
@@ -306,7 +349,7 @@ namespace DedicatedServer
                                                 catch (Exception e)
                                                 {
                                                     log.Error("Error while handling packet on " + peer1.IP + "(#" +
-                                                              peer1.ID + "). " + e);
+                                                              peer1.ID + "). Disconnecting.");
                                                     QueueDisconnect(peer1, (uint)Status.Forbidden);
                                                 }
                                             });
@@ -343,6 +386,8 @@ namespace DedicatedServer
 
             Madness.Packets.Packet pa = Decreal.DeserializePacket(dec);
             
+            log.Debug("Received packet " + pa.type + " from Peer " + p.peer.IP);
+            
             pa.Handle(p);
         }
 
@@ -362,39 +407,31 @@ namespace DedicatedServer
             ENet.Packet packet = default(ENet.Packet);
             packet.Create(enc);
             p.Send(0, ref packet);
+            log.Debug("Sent packet " + pa.type + " to Peer " + p.IP);
         }
 
         
         public static void NewConnection(Peer p, byte[] hello)
         {
+            CPacketHello h = Decreal.DeserializePacket<CPacketHello>(hello);
 
-            try
+            byte[] aesKey = RSA.Decrypt(h.AESKey);
+
+            Player yooo = new Player(p);
+            yooo.current_aes = aesKey;
+
+            lock (Players)
             {
-                CPacketHello h = Decreal.DeserializePacket<CPacketHello>(hello);
-
-                byte[] aesKey = RSA.Decrypt(h.AESKey);
-
-                Player yooo = new Player(p);
-                yooo.current_aes = aesKey;
-
-                lock (Players)
-                {
-                    Players.Add(yooo);
-                }
-                
-                log.Info("Peer " + p.IP + " has connected with a good packet.");
-                
-                // Send packet back to say we got it
-
-                SPacketHello sh = new SPacketHello();
-
-                SendPacket(yooo, sh);
+                Players.Add(yooo);
             }
-            catch (Exception e)
-            {
-                log.Error("Peer " + p.IP + " has submitted a bad GreetSever packet. oops. " + e);
-                QueueDisconnect(p, (uint)Status.BadRequest);
-            }
+                
+            log.Info("Peer " + p.IP + " has connected with a good packet.");
+                
+            // Send packet back to say we got it
+
+            SPacketHello sh = new SPacketHello();
+
+            SendPacket(yooo, sh);
             
         }
         

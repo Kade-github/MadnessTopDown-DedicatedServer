@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using DedicatedServer.Madness.Packets;
 using MessagePack;
 
@@ -46,6 +49,18 @@ public class CPacketChangeUsername : Packet
             return;
         }
 
+        DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(p.account!.LastUsernameChange);
+
+        if ((DateTime.Now - dateTimeOffset.UtcDateTime).Hours < 12)
+        {
+            SPacketChangeUsername username3 = new SPacketChangeUsername();
+            username3.status = Status.Unauthorized;
+            Program.QueuePacket(p, username3);
+            return;
+        }
+        
+        p.account.LastUsernameChange = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+        
         p.account!.Username = Username;
         
         SPacketChangeUsername username2 = new SPacketChangeUsername();

@@ -10,6 +10,7 @@ namespace DedicatedServer.Madness
 {
     public class Account
     {
+        public int Id = 0;
         public string Username = "";
         public string Email = "";
         public byte[] PasswordSalt;
@@ -26,6 +27,8 @@ namespace DedicatedServer.Madness
         public bool EmailConfirmed = false;
 
         public long CreationDate = 0;
+
+        public long LastUsernameChange = 0;
 
         public Account()
         {
@@ -52,8 +55,8 @@ namespace DedicatedServer.Madness
         {
             MySqlConnection connection = await SQLConnection.OpenConnection(Constants.DBHost, Constants.DBPort);
 
-            var query = new MySqlCommand("SELECT * FROM users WHERE username = LOWER(@Username)");
-            query.Parameters.AddWithValue("@Username", Username.ToLower());
+            var query = new MySqlCommand("SELECT * FROM users WHERE id = LOWER(@Id)");
+            query.Parameters.AddWithValue("@Id", Id);
             query.Connection = connection;
 
             await query.PrepareAsync();
@@ -62,6 +65,7 @@ namespace DedicatedServer.Madness
 
             if (reader.HasRows)
             {
+                int _id = reader.GetInt32("id");
                 string _username = reader.GetString("username");
                 string _email = reader.GetString("email");
                 string _passwordHash = reader.GetString("password_hash");
@@ -70,6 +74,7 @@ namespace DedicatedServer.Madness
                 string _lastIp = reader.GetString("last_ip");
                 bool _admin = reader.GetBoolean("admin");
                 bool _banned = reader.GetBoolean("banned");
+                Id = _id;
                 Username = _username;
                 Email = _email;
                 PasswordHash = _passwordHash;
@@ -92,14 +97,17 @@ namespace DedicatedServer.Madness
         public async Task Export()
         {
             MySqlConnection connection = await SQLConnection.OpenConnection(Constants.DBHost, Constants.DBPort);
-            var insert = new MySqlCommand("INSERT INTO users (username, email, password_hash, salt, creationdate, email_confirmed, last_ip) VALUES (@Username, @Email, @PasswordHash, @Salt, @CreationDate, 1, @LastIp)");
+            var insert = new MySqlCommand("REPLACE INTO users (id, username, email, password_hash, salt, creationdate, email_confirmed, last_ip, admin, banned) VALUES (@Id, @Username, @Email, @PasswordHash, @Salt, @CreationDate, 1, @LastIp, @Admin, @Banned)");
             insert.Connection = connection;
+            insert.Parameters.AddWithValue("@Id", Id);
             insert.Parameters.AddWithValue("@Username", Username);
             insert.Parameters.AddWithValue("@Email", Email);
             insert.Parameters.AddWithValue("@PasswordHash", PasswordHash);
             insert.Parameters.AddWithValue("@Salt", Convert.ToBase64String(PasswordSalt));
             insert.Parameters.AddWithValue("@CreationDate", CreationDate);
             insert.Parameters.AddWithValue("@LastIp", LastIP);
+            insert.Parameters.AddWithValue("@Admin", Admin);
+            insert.Parameters.AddWithValue("@Banned", Banned);
             await insert.PrepareAsync();
 
             await insert.ExecuteNonQueryAsync();
@@ -126,6 +134,7 @@ namespace DedicatedServer.Madness
             {
                 while (await reader.ReadAsync())
                 {
+                    int _id = reader.GetInt32("id");
                     string _username = reader.GetString("username");
                     string _email = reader.GetString("email");
                     string _passwordHash = reader.GetString("password_hash");
@@ -135,6 +144,43 @@ namespace DedicatedServer.Madness
                     bool _admin = reader.GetBoolean("admin");
                     bool _banned = reader.GetBoolean("banned");
                     ret = new Account(_username, _email, _salt, _passwordHash, _lastIp, _admin, _banned, _creationDate);
+                    ret.Id = _id;
+                }
+            }
+            await connection.CloseAsync();
+            await connection.DisposeAsync();
+            return ret;
+        }
+        
+        /// <summary>
+        /// Mysql call to get an account from the database.
+        /// </summary>
+        public static async Task<Account?> GetAccount(string username, string email)
+        {
+            MySqlConnection connection = await SQLConnection.OpenConnection(Constants.DBHost, Constants.DBPort);
+
+            var query = new MySqlCommand("SELECT * FROM users WHERE username = LOWER(@Username) and email = LOWER(@Email)");
+            query.Parameters.AddWithValue("@Username", username.ToLower());
+            query.Connection = connection;
+            await query.PrepareAsync();
+        
+            var reader = await query.ExecuteReaderAsync();
+            Account? ret = null;
+            if (reader.HasRows)
+            {
+                while (await reader.ReadAsync())
+                {
+                    int _id = reader.GetInt32("id");
+                    string _username = reader.GetString("username");
+                    string _email = reader.GetString("email");
+                    string _passwordHash = reader.GetString("password_hash");
+                    byte[] _salt = Convert.FromBase64String(reader.GetString("salt"));
+                    long _creationDate = reader.GetInt64("creationdate");
+                    string _lastIp = reader.GetString("last_ip");
+                    bool _admin = reader.GetBoolean("admin");
+                    bool _banned = reader.GetBoolean("banned");
+                    ret = new Account(_username, _email, _salt, _passwordHash, _lastIp, _admin, _banned, _creationDate);
+                    ret.Id = _id;
                 }
             }
             await connection.CloseAsync();

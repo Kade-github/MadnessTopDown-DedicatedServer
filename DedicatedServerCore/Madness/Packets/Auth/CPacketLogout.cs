@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using DedicatedServer.Madness.Packets;
 using MessagePack;
 

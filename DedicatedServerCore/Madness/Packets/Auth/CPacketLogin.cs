@@ -25,10 +25,10 @@ public class CPacketLogin : Packet
         SPacketLogin status;
         if (a == null)
         {
-            Program.log.Info(p.peer.IP + " failed to log in!");
             status = new SPacketLogin();
             status.StatusCode = Status.BadRequest;
             Program.QueuePacket(p, status);
+            Program.log.Info(p.peer.IP + " failed to log in!");
             return;
         }
         Program.log.Debug(watch.Elapsed.Milliseconds + "ms - login 1");
