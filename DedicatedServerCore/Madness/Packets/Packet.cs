@@ -28,7 +28,7 @@ namespace DedicatedServer.Madness.Packets
         CPacketLogout = 6,
         CPacketChangePassword = 7,
         CPacketChangeUsername = 8,
-        CPacketHeartBeat = 1000,
+        CPacketHeartbeat = 9,
         SPacketHello = -1,
         SPacketSignUp = -2,
         SPacketVerifyEmail = -3,
@@ -37,6 +37,7 @@ namespace DedicatedServer.Madness.Packets
         SPacketLogout = -6,
         SPacketChangePassword = -7,
         SPacketChangeUsername = -8,
+        SPacketHeartbeat = -9,
         SPacketStatus = -1000,
     }
     

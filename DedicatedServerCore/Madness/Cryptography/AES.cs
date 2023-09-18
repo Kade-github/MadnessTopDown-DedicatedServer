@@ -13,6 +13,19 @@ namespace DedicatedServer.Madness.Cryptography
 {
     public static class AES
     {
+        /// <summary>
+        /// AIDS STANDS FOR
+        /// a,interactive,destructible,s--bytearray
+        /// </summary>
+        /// <returns></returns>
+        public static byte[] GenerateAIDS()
+        {
+            var key = new byte[32];
+            RandomNumberGenerator.Fill(key);
+            return key;
+        }
+
+        
         public static void TestAES()
         {
             var data = "The quick brown fox jumps over the lazy dog.";

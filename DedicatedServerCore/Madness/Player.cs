@@ -9,17 +9,22 @@ namespace DedicatedServer.Madness
     public class Player
     {
         public byte[] current_aes;
-        
+        public byte[] next_aes = Array.Empty<Byte>();
         public Account? account = null;
+        public long timeSinceHeartbeat = 0;
         public Peer peer;
 
         public string playerLog = "";
 
+        public Stopwatch connectTime = new Stopwatch();
         private Stopwatch watch = new Stopwatch();
+        public Stopwatch heartBeatWatch = new Stopwatch();
 
         private bool isWatched = false;
         
         private int packetsLastFew = 0;
+
+        public int heartbeatNumber = 0;
 
         public bool HandleRateLimit()
         {

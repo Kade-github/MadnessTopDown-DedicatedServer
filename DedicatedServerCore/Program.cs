@@ -197,6 +197,39 @@ namespace DedicatedServer
                     Monitor.Exit(queueDisconnect);
                 }
             }
+
+            if (Monitor.TryEnter(Players))
+            {
+                try
+                {
+                    foreach (Player p in Players)
+                    {
+                        // start player timers
+                        if (!p.connectTime.IsRunning)
+                            p.connectTime.Start();
+                        if (!p.heartBeatWatch.IsRunning)
+                            p.heartBeatWatch.Start();
+
+                        if (p.heartBeatWatch.Elapsed.Seconds >= 1)
+                        {
+                            p.heartBeatWatch.Restart();
+                            SPacketHeartbeat heartBeat = new SPacketHeartbeat();
+                            heartBeat.Number = RandomNumberGenerator.GetInt32(80000);
+                            p.heartbeatNumber = heartBeat.Number;
+                            if (p.connectTime.Elapsed.Seconds % 300 == 0)
+                            {
+                                heartBeat.NewKey = AES.GenerateAIDS();
+                                p.next_aes = heartBeat.NewKey;
+                            }
+                            QueuePacket(p, heartBeat);
+                        }
+                    }
+                }
+                finally
+                {
+                    Monitor.Exit(Players);
+                }
+            }
         }
         
         public static void Main(string[] args)
@@ -335,6 +368,7 @@ namespace DedicatedServer
                                     {
                                         if (found.HandleRateLimit())
                                         {
+     
                                             if (found.account != null)
                                                 found.account.lastUsed.Restart();
                                             var peer1 = peer;
@@ -381,13 +415,31 @@ namespace DedicatedServer
 
         public static void HandlePacket(Player p, byte[] enc)
         {
-
-            byte[] dec = AES.DecryptAESPacket(enc, p.current_aes);
-
-            Madness.Packets.Packet pa = Decreal.DeserializePacket(dec);
             
-            log.Debug("Received packet " + pa.type + " from Peer " + p.peer.IP);
-            
+            Madness.Packets.Packet pa;
+            byte[] dec;
+            if (p.next_aes.Length != 0) // should be a heartbeat packet
+            {
+                try
+                {
+                    dec = AES.DecryptAESPacket(enc, p.next_aes);
+                    pa = Decreal.DeserializePacket(dec);
+                    if (pa.type != PacketType.CPacketHeartbeat)
+                        return;
+                    pa.Handle(p);
+                    return; 
+                }
+                catch
+                {
+                    // no go
+                    return;
+                }
+            }
+            dec = AES.DecryptAESPacket(enc, p.current_aes);
+
+            pa = Decreal.DeserializePacket(dec);
+
+
             pa.Handle(p);
         }
 
@@ -398,7 +450,6 @@ namespace DedicatedServer
             ENet.Packet packet = default(ENet.Packet);
             packet.Create(enc);
             pl.peer.Send(0, ref packet);
-            log.Debug("Sent packet " + pa.type + " to Peer " + pl.peer.IP);
         }
         public static void SendPacket(Peer p, Madness.Packets.Packet pa)
         {
@@ -407,7 +458,6 @@ namespace DedicatedServer
             ENet.Packet packet = default(ENet.Packet);
             packet.Create(enc);
             p.Send(0, ref packet);
-            log.Debug("Sent packet " + pa.type + " to Peer " + p.IP);
         }
 
         
@@ -425,7 +475,7 @@ namespace DedicatedServer
                 Players.Add(yooo);
             }
                 
-            log.Info("Peer " + p.IP + " has connected with a good packet.");
+            log.Debug("Peer " + p.IP + " has connected with a good packet.");
                 
             // Send packet back to say we got it
 

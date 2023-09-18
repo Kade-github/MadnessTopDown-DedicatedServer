@@ -28,10 +28,9 @@ public class CPacketLogin : Packet
             status = new SPacketLogin();
             status.StatusCode = Status.BadRequest;
             Program.QueuePacket(p, status);
-            Program.log.Info(p.peer.IP + " failed to log in!");
+            p.AddLog("Failed to login to " + Username + " because the account doesn't exist.");
             return;
         }
-        Program.log.Debug(watch.Elapsed.Milliseconds + "ms - login 1");
         watch.Restart();
         string base64 = HashPassword.HashIntoBase64(PasswordHash, a.PasswordSalt);
         if (base64 != a.PasswordHash)
@@ -39,26 +38,24 @@ public class CPacketLogin : Packet
             status = new SPacketLogin();
             status.StatusCode = Status.Unauthorized;
             Program.QueuePacket(p, status);
+            p.AddLog("Failed to login to " + Username + " the password was incorrect.");
             return;
         }
-        Program.log.Debug(watch.Elapsed.Milliseconds + "ms - login 2");
         watch.Restart();
         if (a.Banned)
         {
             // todo: eventually ban that ip that tried to access the account
             Program.QueueDisconnect(p.peer, (uint)Status.PaymentRequired);
+            p.AddLog("Failed to login to " + Username + " because the account is banned.");
             return;
         }
-        Program.log.Debug(watch.Elapsed.Milliseconds + "ms - login 3");
         watch.Restart();
         p.account = a;
         
         status = new SPacketLogin();
         status.StatusCode = Status.Okay;
         Program.QueuePacket(p, status);
-
-        Program.log.Info(p.account.Username + " has logged in!");
+        
         p.AddLog("Logged into " + p.account.Username);
-        Program.log.Debug(watch.Elapsed.Milliseconds + "ms - login 4");
     }
 }
