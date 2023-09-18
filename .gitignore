@@ -20,3 +20,4 @@ DedicatedServer/bin/*
 DedicatedServer/obj/*
 packages/*
 DedicatedServer/Madness/Secrets/*
+DedicatedServerCore/Madness/Secrets/*
