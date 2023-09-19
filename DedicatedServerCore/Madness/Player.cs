@@ -12,6 +12,7 @@ namespace DedicatedServer.Madness
         public byte[] next_aes = Array.Empty<Byte>();
         public Account? account = null;
         public long timeSinceHeartbeat = 0;
+        public long lastHeartbeat = 0;
         public Peer peer;
 
         public string playerLog = "";

@@ -210,18 +210,29 @@ namespace DedicatedServer
                         if (!p.heartBeatWatch.IsRunning)
                             p.heartBeatWatch.Start();
 
-                        if (p.heartBeatWatch.Elapsed.Seconds >= 1)
+                        if (p.timeSinceHeartbeat >= p.lastHeartbeat || p.timeSinceHeartbeat == 0)
                         {
-                            p.heartBeatWatch.Restart();
-                            SPacketHeartbeat heartBeat = new SPacketHeartbeat();
-                            heartBeat.Number = RandomNumberGenerator.GetInt32(80000);
-                            p.heartbeatNumber = heartBeat.Number;
-                            if (p.connectTime.Elapsed.Seconds % 300 == 0)
+
+                            if (p.heartBeatWatch.Elapsed.Seconds >= 1)
                             {
-                                heartBeat.NewKey = AES.GenerateAIDS();
-                                p.next_aes = heartBeat.NewKey;
+                                p.heartBeatWatch.Restart();
+                                SPacketHeartbeat heartBeat = new SPacketHeartbeat();
+                                heartBeat.Number = RandomNumberGenerator.GetInt32(80000);
+                                p.heartbeatNumber = heartBeat.Number;
+                                if (p.connectTime.Elapsed.Seconds % 300 == 0)
+                                {
+                                    heartBeat.NewKey = AES.GenerateAIDS();
+                                    p.next_aes = heartBeat.NewKey;
+                                }
+
+                                QueuePacket(p, heartBeat);
                             }
-                            QueuePacket(p, heartBeat);
+                        }
+                        else
+                        {
+                            long diff = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - p.timeSinceHeartbeat;
+                            if (diff > 35)
+                                QueueDisconnect(p.peer, (uint)Status.FuckYou);
                         }
                     }
                 }
