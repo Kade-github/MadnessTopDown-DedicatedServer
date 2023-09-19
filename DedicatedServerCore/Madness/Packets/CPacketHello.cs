@@ -6,6 +6,7 @@ namespace DedicatedServer.Madness.Packets
     public class CPacketHello : Packet
     {
         [Key("Nothing")] public byte[] AESKey;
+        [Key("Version")] public string Version;
         
         public CPacketHello() : base(PacketType.CPacketHello)
         {

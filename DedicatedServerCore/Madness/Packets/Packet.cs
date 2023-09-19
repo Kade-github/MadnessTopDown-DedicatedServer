@@ -14,6 +14,7 @@ namespace DedicatedServer.Madness.Packets
         NotFound = 404,
         TooManyRequests = 429,
         UserAlreadyExists = 600,
+        WrongVersion = 700,
         FuckYou = 1337
     }
     

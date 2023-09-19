@@ -23,6 +23,8 @@ namespace DedicatedServer
 {
     internal class Program
     {
+        public static string SupportedClientVersion = "indev.04";
+        public static string ServerVersion = "dev";
         public static RandomNumberGenerator number;
         public static Logging log;
         
@@ -476,6 +478,12 @@ namespace DedicatedServer
         {
             CPacketHello h = Decreal.DeserializePacket<CPacketHello>(hello);
 
+            if (h.Version != SupportedClientVersion)
+            {
+                QueueDisconnect(p, (uint)Status.WrongVersion);
+                return;
+            }
+            
             byte[] aesKey = RSA.Decrypt(h.AESKey);
 
             Player yooo = new Player(p);
