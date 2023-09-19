@@ -38,5 +38,6 @@ public class CPacketHeartbeat : Packet
             p.current_aes = p.next_aes;
             p.next_aes = Array.Empty<Byte>();
         }
+        Program.log.Debug("Obtained heartbeat...");
     }
 }

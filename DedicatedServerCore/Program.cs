@@ -211,13 +211,14 @@ namespace DedicatedServer
                             p.connectTime.Start();
                         if (!p.heartBeatWatch.IsRunning)
                             p.heartBeatWatch.Start();
-
-                        if (p.timeSinceHeartbeat >= p.lastHeartbeat || p.timeSinceHeartbeat == 0)
+                        
+                        if (p.timeSinceHeartbeat >= p.lastHeartbeat)
                         {
-
+                            
                             if (p.heartBeatWatch.Elapsed.Seconds >= 1)
                             {
                                 p.heartBeatWatch.Restart();
+                                p.lastHeartbeat = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                                 SPacketHeartbeat heartBeat = new SPacketHeartbeat();
                                 heartBeat.Number = RandomNumberGenerator.GetInt32(80000);
                                 p.heartbeatNumber = heartBeat.Number;
@@ -233,8 +234,28 @@ namespace DedicatedServer
                         else
                         {
                             long diff = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - p.timeSinceHeartbeat;
+                            if (p.timeSinceHeartbeat == 0)
+                                diff = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - p.lastHeartbeat;
                             if (diff > 35)
-                                QueueDisconnect(p.peer, (uint)Status.FuckYou);
+                            {
+                                p.failedHeartbeats++;
+                                if (p.failedHeartbeats > 3)
+                                    QueueDisconnect(p.peer, (uint)Status.FuckYou);
+                                else
+                                {
+                                    p.heartBeatWatch.Restart();
+                                    SPacketHeartbeat heartBeat = new SPacketHeartbeat();
+                                    heartBeat.Number = RandomNumberGenerator.GetInt32(80000);
+                                    p.heartbeatNumber = heartBeat.Number;
+                                    if (p.connectTime.Elapsed.Seconds % 300 == 0)
+                                    {
+                                        heartBeat.NewKey = AES.GenerateAIDS();
+                                        p.next_aes = heartBeat.NewKey;
+                                    }
+
+                                    QueuePacket(p, heartBeat);
+                                }
+                            }
                         }
                     }
                 }

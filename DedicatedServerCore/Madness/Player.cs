@@ -26,6 +26,7 @@ namespace DedicatedServer.Madness
         private int packetsLastFew = 0;
 
         public int heartbeatNumber = 0;
+        public int failedHeartbeats = 0;
 
         public bool HandleRateLimit()
         {
