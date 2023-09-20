@@ -6,6 +6,8 @@ using DedicatedServer.Madness.Secrets;
 using MessagePack;
 using MySqlConnector;
 using DedicatedServer.Madness.Packets;
+using DedicatedServer.Madness.Server;
+
 namespace DedicatedServer.Madness.Auth.Packets;
 
 [MessagePackObject]
@@ -19,12 +21,12 @@ public class CPacketVerifyEmail : Packet
     
     public override async Task Handle(Player p)
     {
-        Account a = Program.tempAccounts.FirstOrDefault(a => a.Email == Email && a.EmailConfirmation == VerifyCode);
+        Account a = PlayerHandle.tempAccounts.FirstOrDefault(a => a.Email == Email && a.EmailConfirmation == VerifyCode);
         if (a == null)
         {
             SPacketVerifyEmail status = new SPacketVerifyEmail();
             status.StatusCode = Status.BadRequest;
-            Program.QueuePacket(p, status);
+            PacketHandle.QueuePacket(p, status);
             return;
         }
 
@@ -32,7 +34,7 @@ public class CPacketVerifyEmail : Packet
         {
             SPacketVerifyEmail status = new SPacketVerifyEmail();
             status.StatusCode = Status.BadRequest;
-            Program.QueuePacket(p, status);
+            PacketHandle.QueuePacket(p, status);
             return;
         }
 
@@ -40,7 +42,7 @@ public class CPacketVerifyEmail : Packet
 
         SPacketVerifyEmail s = new SPacketVerifyEmail();
         s.StatusCode = Status.Okay;
-        Program.QueuePacket(p, s);
+        PacketHandle.QueuePacket(p, s);
         Program.log.Info(a.Username + " has verified their email!");
         p.AddLog("Verified " + a.Username);
         await a.Export();

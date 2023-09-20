@@ -65,7 +65,7 @@ namespace DedicatedServer.Madness.Cryptography
         {
             var iv = new byte[16];
 
-            Program.number.GetNonZeroBytes(iv);
+            RandomNumberGenerator.Fill(iv);
 
             var encrypted = Encrypt(data, aesKey, iv);
 

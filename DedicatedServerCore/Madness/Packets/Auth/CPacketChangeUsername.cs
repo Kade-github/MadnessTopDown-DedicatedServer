@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using DedicatedServer.Madness.Packets;
+using DedicatedServer.Madness.Server;
 using MessagePack;
 
 namespace DedicatedServer.Madness.Auth.Packets;
@@ -21,7 +22,7 @@ public class CPacketChangeUsername : Packet
         {
             SPacketChangeUsername username = new SPacketChangeUsername();
             username.status = Status.BadRequest;
-            Program.QueuePacket(p, username);
+            PacketHandle.QueuePacket(p, username);
             return;
         }
         
@@ -29,7 +30,7 @@ public class CPacketChangeUsername : Packet
         {
             SPacketChangeUsername username = new SPacketChangeUsername();
             username.status = Status.BadRequest;
-            Program.QueuePacket(p, username);
+            PacketHandle.QueuePacket(p, username);
             return;
         }
         
@@ -37,7 +38,7 @@ public class CPacketChangeUsername : Packet
         {
             SPacketChangeUsername username = new SPacketChangeUsername();
             username.status = Status.BadRequest;
-            Program.QueuePacket(p, username);
+            PacketHandle.QueuePacket(p, username);
             return;
         }
         
@@ -45,7 +46,7 @@ public class CPacketChangeUsername : Packet
         {
             SPacketChangeUsername username = new SPacketChangeUsername();
             username.status = Status.BadRequest;
-            Program.QueuePacket(p, username);
+            PacketHandle.QueuePacket(p, username);
             return;
         }
 
@@ -55,7 +56,7 @@ public class CPacketChangeUsername : Packet
         {
             SPacketChangeUsername username3 = new SPacketChangeUsername();
             username3.status = Status.Unauthorized;
-            Program.QueuePacket(p, username3);
+            PacketHandle.QueuePacket(p, username3);
             return;
         }
         
@@ -65,7 +66,7 @@ public class CPacketChangeUsername : Packet
         
         SPacketChangeUsername username2 = new SPacketChangeUsername();
         username2.status = Status.Okay;
-        Program.QueuePacket(p, username2);
+        PacketHandle.QueuePacket(p, username2);
 
         await p.account.Export();
 

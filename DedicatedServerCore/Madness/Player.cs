@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using DedicatedServer.Madness.Packets;
+using DedicatedServer.Madness.Server;
 using ENet;
 
 namespace DedicatedServer.Madness
@@ -15,6 +16,8 @@ namespace DedicatedServer.Madness
         public long lastHeartbeat = 0;
         public Peer peer;
 
+        public bool isIpBanned = false;
+        
         public string playerLog = "";
 
         public Stopwatch connectTime = new Stopwatch();
@@ -42,6 +45,15 @@ namespace DedicatedServer.Madness
 
             if (isWatched && packetsLastFew > 350 && peer.LastReceiveTime < 200)
             {
+                if (account != null)
+                {
+                    PlayerHandle.BanPlayer(account);
+                }
+                else
+                {
+                    PlayerHandle.BanIp(peer.IP);
+                }
+
                 peer.DisconnectNow((uint)Status.TooManyRequests);
                 return false;
             }
@@ -54,6 +66,7 @@ namespace DedicatedServer.Madness
 
             if (packetsLastFew > 100) // First flag
             {
+                
                 return false;
             }
 

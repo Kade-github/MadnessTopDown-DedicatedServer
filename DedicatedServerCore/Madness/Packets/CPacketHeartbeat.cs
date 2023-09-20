@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using DedicatedServer.Madness.Server;
 using MessagePack;
 
 namespace DedicatedServer.Madness.Packets;
@@ -19,7 +20,7 @@ public class CPacketHeartbeat : Packet
             long diff = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - p.timeSinceHeartbeat;
             if (diff > 30)
             {
-                Program.QueueDisconnect(p.peer, (uint)Status.FuckYou);
+                PacketHandle.QueueDisconnect(p.peer, (uint)Status.FuckYou);
                 return;
             }
         }
@@ -27,7 +28,7 @@ public class CPacketHeartbeat : Packet
         if (Number != p.heartbeatNumber)
         {
             // Ban the person
-            Program.QueueDisconnect(p.peer, (uint)Status.PaymentRequired);
+            PacketHandle.QueueDisconnect(p.peer, (uint)Status.PaymentRequired);
             return;
         }
         
@@ -38,6 +39,5 @@ public class CPacketHeartbeat : Packet
             p.current_aes = p.next_aes;
             p.next_aes = Array.Empty<Byte>();
         }
-        Program.log.Debug("Obtained heartbeat...");
     }
 }

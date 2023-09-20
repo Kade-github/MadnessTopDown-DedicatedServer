@@ -13,7 +13,7 @@ namespace DedicatedServer.Madness.DB
         {
             DbConnectionStringBuilder csb = new DbConnectionStringBuilder();
             csb.ConnectionString =
-                $"Server={addr}; Port={port};database=users; UID={Constants.DBUser}; password={Constants.DBPassword};Connection Timeout=2;";
+                $"Server={addr}; Port={port};database=RiotRage; UID={Constants.DBUser}; password={Constants.DBPassword};Connection Timeout=2;";
             MySqlConnection c  = new MySqlConnection(csb.ConnectionString);
             
             await c.OpenAsync();

@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography;
 using Org.BouncyCastle.Crypto.Generators;
 
 namespace DedicatedServer.Madness.Helpers;
@@ -10,7 +11,7 @@ public class HashPassword
         if (salt == null)
         {
             salt = new byte[16];
-            Program.number.GetNonZeroBytes(salt);
+            RandomNumberGenerator.Fill(salt);
         }
         byte[] hash = null;
         try

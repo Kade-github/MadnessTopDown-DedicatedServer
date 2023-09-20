@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using DedicatedServer.Madness.Packets;
+using DedicatedServer.Madness.Server;
 using MessagePack;
 
 namespace DedicatedServer.Madness.Auth.Packets;
@@ -21,7 +22,7 @@ public class CPacketLogout : Packet
             {
                 statusCode = Status.BadRequest
             };
-            Program.QueuePacket(p, logout);
+            PacketHandle.QueuePacket(p, logout);
             return;
         }
 
@@ -32,6 +33,6 @@ public class CPacketLogout : Packet
         {
             statusCode = Status.Okay
         };
-        Program.QueuePacket(p, logout);
+        PacketHandle.QueuePacket(p, logout);
     }
 }

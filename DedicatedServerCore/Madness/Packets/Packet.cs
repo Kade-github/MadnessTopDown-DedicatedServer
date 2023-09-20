@@ -6,6 +6,7 @@ namespace DedicatedServer.Madness.Packets
 {
     public enum Status
     {
+        ServerClosing = 0,
         Okay = 200,
         BadRequest = 400,
         Unauthorized = 401,

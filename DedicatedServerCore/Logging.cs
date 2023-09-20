@@ -92,8 +92,7 @@ namespace DedicatedServer
         public void Error(string text)
         {
             string l = "[" + DateTime.Now.ToLongDateString() + " " + DateTime.Now.ToLongTimeString() + "] [Error] " + text;
-
-            Program.errors++;
+            
             AddText(l);
         }
         

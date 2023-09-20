@@ -5,6 +5,8 @@ using DedicatedServer.Madness.Helpers;
 using DedicatedServer.Madness.Mail;
 using MessagePack;
 using DedicatedServer.Madness.Packets;
+using DedicatedServer.Madness.Server;
+
 namespace DedicatedServer.Madness.Auth.Packets;
 
 [MessagePackObject()]
@@ -17,14 +19,14 @@ public class CPacketResetPassword : Packet
 
     public override async Task Handle(Player p)
     {
-        Account? a = await Program.GetAccount(Username);
+        Account? a = await PlayerHandle.GetAccount(Username);
 
         SPacketResetPassword st;
         if (a == null)
         {
             st = new SPacketResetPassword();
             st.StatusCode = Status.NotFound;
-            Program.QueuePacket(p,st);
+            PacketHandle.QueuePacket(p,st);
             return;
         }
 
@@ -32,7 +34,7 @@ public class CPacketResetPassword : Packet
         {
             st = new SPacketResetPassword();
             st.StatusCode = Status.UserAlreadyExists;
-            Program.QueuePacket(p,st);
+            PacketHandle.QueuePacket(p,st);
             return;
         }
 
@@ -51,6 +53,6 @@ public class CPacketResetPassword : Packet
         
         st = new SPacketResetPassword();
         st.StatusCode = Status.Okay;
-        Program.QueuePacket(p,st);
+        PacketHandle.QueuePacket(p,st);
     }
 }

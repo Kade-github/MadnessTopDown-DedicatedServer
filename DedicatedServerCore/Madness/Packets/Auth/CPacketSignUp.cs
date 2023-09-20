@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using DedicatedServer.Madness.DB;
@@ -10,6 +11,8 @@ using MessagePack;
 using MySqlConnector;
 using Org.BouncyCastle.Crypto.Generators;
 using DedicatedServer.Madness.Packets;
+using DedicatedServer.Madness.Server;
+
 namespace DedicatedServer.Madness.Auth.Packets;
 
 [MessagePackObject]
@@ -28,40 +31,40 @@ public class CPacketSignUp : Packet
     {
         if (!Email.Contains("@") || !Email.Contains(".") || Email.Contains(" "))
         {
-            Program.QueueDisconnect(p.peer, (uint)Status.BadRequest);
+            PacketHandle.QueueDisconnect(p.peer, (uint)Status.BadRequest);
             return;
         }
 								
         if (Username.Any(ch => !char.IsLetterOrDigit(ch)))
         {
-            Program.QueueDisconnect(p.peer, (uint)Status.BadRequest);
+            PacketHandle.QueueDisconnect(p.peer, (uint)Status.BadRequest);
             return;
         }
 
         if (Username.Length >= 16)
         {
-            Program.QueueDisconnect(p.peer, (uint)Status.BadRequest);
+            PacketHandle.QueueDisconnect(p.peer, (uint)Status.BadRequest);
             return;
         }
 								
         if (Username.Length < 4)
         {
-            Program.QueueDisconnect(p.peer, (uint)Status.BadRequest);
+            PacketHandle.QueueDisconnect(p.peer, (uint)Status.BadRequest);
             return;
         }
 
         if (!SMTP.IsEmailGood(Email))
         {
-            Program.QueueDisconnect(p.peer, (uint)Status.BadRequest);
+            PacketHandle.QueueDisconnect(p.peer, (uint)Status.BadRequest);
             return;
         }
         
-        Account ac = Program.tempAccounts.FirstOrDefault(a => a.Email == Email || a.Username == Username);
+        Account ac = PlayerHandle.tempAccounts.FirstOrDefault(a => a.Email == Email || a.Username == Username);
         if (ac != null)
         {
             SPacketSignUp status = new SPacketSignUp();
             status.statusCode = Status.UserAlreadyExists;
-            Program.QueuePacket(p, status);
+            PacketHandle.QueuePacket(p, status);
             return;
         }
         
@@ -79,7 +82,7 @@ public class CPacketSignUp : Packet
         {
             SPacketSignUp status = new SPacketSignUp();
             status.statusCode = Status.UserAlreadyExists;
-            Program.QueuePacket(p, status);
+            PacketHandle.QueuePacket(p, status);
             await connection.CloseAsync();
 
             await connection.DisposeAsync();
@@ -92,7 +95,7 @@ public class CPacketSignUp : Packet
         
         
         byte[] salt = new byte[16];
-        Program.number.GetNonZeroBytes(salt);
+        RandomNumberGenerator.Fill(salt);
 
         string base64 = HashPassword.HashIntoBase64(Password, salt);
 
@@ -107,7 +110,7 @@ public class CPacketSignUp : Packet
         a.LastIP = p.peer.IP;
         a.EmailConfirmation = RString.RandomString(5);
         
-        Program.tempAccounts.Add(a);
+        PlayerHandle.tempAccounts.Add(a);
 
         try
         {
@@ -123,13 +126,13 @@ public class CPacketSignUp : Packet
             t.Start();
             SPacketSignUp status = new SPacketSignUp();
             status.statusCode = Status.Okay;
-            Program.QueuePacket(p, status);
+            PacketHandle.QueuePacket(p, status);
             
             p.AddLog("Registered " + Username);
         }
         catch
         {
-            Program.QueueDisconnect(p.peer, (uint)Status.BadRequest);
+            PacketHandle.QueueDisconnect(p.peer, (uint)Status.BadRequest);
         }
 
     }

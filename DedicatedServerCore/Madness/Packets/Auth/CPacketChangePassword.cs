@@ -1,6 +1,8 @@
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using DedicatedServer.Madness.Helpers;
 using DedicatedServer.Madness.Packets;
+using DedicatedServer.Madness.Server;
 using MessagePack;
 
 namespace DedicatedServer.Madness.Auth.Packets;
@@ -26,7 +28,7 @@ public class CPacketChangePassword : Packet
             {
                 password = new SPacketResetPassword();
                 password.StatusCode = Status.BadRequest;
-                Program.QueuePacket(p, password);
+                PacketHandle.QueuePacket(p, password);
                 return;
             }
             
@@ -34,17 +36,17 @@ public class CPacketChangePassword : Packet
             {
                 password = new SPacketResetPassword();
                 password.StatusCode = Status.BadRequest;
-                Program.QueuePacket(p, password);
+                PacketHandle.QueuePacket(p, password);
                 return;
             }
 
-            Account? a = await Program.GetAccount(Username);
+            Account? a = await PlayerHandle.GetAccount(Username);
 
             if (a == null)
             {
                 password = new SPacketResetPassword();
                 password.StatusCode = Status.NotFound;
-                Program.QueuePacket(p, password);
+                PacketHandle.QueuePacket(p, password);
                 return;
             }
 
@@ -52,14 +54,14 @@ public class CPacketChangePassword : Packet
             {
                 password = new SPacketResetPassword();
                 password.StatusCode = Status.Forbidden;
-                Program.QueuePacket(p, password);
+                PacketHandle.QueuePacket(p, password);
                 return;
             }
 
             a.PasswordReset = "";
             
             salt = new byte[16];
-            Program.number.GetNonZeroBytes(salt);
+            RandomNumberGenerator.Fill(salt);
 
             base64 = HashPassword.HashIntoBase64(Password, salt);
 
@@ -68,7 +70,7 @@ public class CPacketChangePassword : Packet
             
             password = new SPacketResetPassword();
             password.StatusCode = Status.Okay;
-            Program.QueuePacket(p, password);
+            PacketHandle.QueuePacket(p, password);
 
             await a.Export();
             
@@ -79,7 +81,7 @@ public class CPacketChangePassword : Packet
         {
             password = new SPacketResetPassword();
             password.StatusCode = Status.BadRequest;
-            Program.QueuePacket(p, password);
+            PacketHandle.QueuePacket(p, password);
             return;
         }
 
@@ -87,12 +89,12 @@ public class CPacketChangePassword : Packet
         {
             password = new SPacketResetPassword();
             password.StatusCode = Status.BadRequest;
-            Program.QueuePacket(p, password);
+            PacketHandle.QueuePacket(p, password);
             return;
         }
         
         salt = new byte[16];
-        Program.number.GetNonZeroBytes(salt);
+        RandomNumberGenerator.Fill(salt);
 
         base64 = HashPassword.HashIntoBase64(Password, salt);
 
@@ -101,7 +103,7 @@ public class CPacketChangePassword : Packet
             
         SPacketChangePassword pass = new SPacketChangePassword();
         pass.status = Status.Okay;
-        Program.QueuePacket(p, pass);
+        PacketHandle.QueuePacket(p, pass);
 
         await p.account.Export();
     }
